@@ -32,11 +32,33 @@ import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
  */
 export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
 
+  /**
+   * pull from queue
+   */
   private pullQueue: Function[];
+
+  /**
+   * push to queue
+   */
   private pushQueue: any[];
+  /**
+   * Array fo available events
+   */
   private eventsArray: string[];
-  private allSubscribed: Promise<number[]>;
+
+  /**
+   * all subscription stored into this
+   */
+  private readonly allSubscribed: Promise<number[]>;
+
+  /**
+   * checking if listening
+   */
   private listening: boolean;
+
+  /**
+   * graphql pubsub
+   */
   private pubsub: PubSubEngine;
 
   constructor(pubsub: PubSubEngine, eventNames: string | string[]) {
@@ -48,26 +70,43 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
     this.allSubscribed = this.subscribeAll();
   }
 
-  public async next() {
+  /**
+   * next method
+   */
+  public async next(): Promise<IteratorResult<any>> {
     await this.allSubscribed;
     return this.listening ? this.pullValue() : this.return();
   }
 
-  public async return() {
+  /**
+   * return method
+   */
+  public async return(): Promise<any> {
     this.emptyQueue(await this.allSubscribed);
     return { value: undefined, done: true };
   }
 
-  public async throw(error) {
+  /**
+   * Error thrown
+   * @param error
+   */
+  public async throw(error): Promise<IteratorResult<T>> {
     this.emptyQueue(await this.allSubscribed);
     return Promise.reject(error);
   }
 
-  public [$$asyncIterator]() {
+  /**
+   * $$asyncIterator named function, generated on the fly
+   */
+  public [$$asyncIterator](): PubSubAsyncIterator<T> {
     return this;
   }
 
-  private async pushValue(event) {
+  /**
+   * async push value method
+   * @param event
+   */
+  private async pushValue(event): Promise<void> {
     await this.allSubscribed;
     if (this.pullQueue.length !== 0) {
       this.pullQueue.shift()({ value: event, done: false });
@@ -76,6 +115,9 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
     }
   }
 
+  /**
+   * Pull value method
+   */
   private pullValue(): Promise<IteratorResult<any>> {
     return new Promise(resolve => {
       if (this.pushQueue.length !== 0) {
@@ -86,7 +128,11 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
     });
   }
 
-  private emptyQueue(subscriptionIds: number[]) {
+  /**
+   * Emptying queue method
+   * @param subscriptionIds
+   */
+  private emptyQueue(subscriptionIds: number[]): void {
     if (this.listening) {
       this.listening = false;
       this.unsubscribeAll(subscriptionIds);
@@ -96,13 +142,20 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
     }
   }
 
-  private subscribeAll() {
+  /**
+   * subscribe method on all channel
+   */
+  private subscribeAll(): Promise<Array<number>> {
     return Promise.all(this.eventsArray.map(
-        eventName => this.pubsub.subscribe(eventName, this.pushValue.bind(this), {}),
+        eventName => this.pubsub.subscribe(eventName, this.pushValue.bind(this), {})
     ));
   }
 
-  private unsubscribeAll(subscriptionIds: number[]) {
+  /**
+   * unsubscribe method
+   * @param subscriptionIds
+   */
+  private unsubscribeAll(subscriptionIds: number[]): void {
     for (const subscriptionId of subscriptionIds) {
       this.pubsub.unsubscribe(subscriptionId);
     }

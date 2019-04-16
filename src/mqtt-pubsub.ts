@@ -5,33 +5,112 @@ import {
   Client,
   ISubscriptionGrant,
   IClientPublishOptions,
-  IClientSubscribeOptions,
+  IClientSubscribeOptions
 } from 'mqtt';
 
+/**
+ * PubSubMQTTOptions interface
+ */
 export interface PubSubMQTTOptions {
+  /**
+   * mqtt broker url
+   */
   brokerUrl?: string;
+
+  /**
+   * Mqtt client
+   */
   client?: Client;
+  /**
+   * connection listener method
+   * @param err
+   */
   connectionListener?: (err: Error) => void;
+  /**
+   * publish options
+   */
   publishOptions?: PublishOptionsResolver;
+
+  /**
+   * subscribe options
+   */
   subscribeOptions?: SubscribeOptionsResolver;
+
+  /**
+   * Mqtt subscribe method
+   * @param id
+   * @param granted
+   */
   onMQTTSubscribe?: (id: number, granted: ISubscriptionGrant[]) => void;
+
+  /**
+   * trigger transform param
+   */
   triggerTransform?: TriggerTransform;
+
+  /**
+   * type of message encode set
+   */
   parseMessageWithEncoding?: BufferEncoding;
 }
 
+/**
+ * MQTT Pub Sub class based in PubSubEngine
+ */
 export class MQTTPubSub implements PubSubEngine {
 
-  private triggerTransform: TriggerTransform;
-  private onMQTTSubscribe: SubscribeHandler;
-  private subscribeOptionsResolver: SubscribeOptionsResolver;
-  private publishOptionsResolver: PublishOptionsResolver;
-  private mqttConnection: Client;
-  private subscriptionMap: { [subId: number]: [string, Function] };
-  private subsRefsMap: { [trigger: string]: Array<number> };
-  private currentSubscriptionId: number;
-  private parseMessageWithEncoding: BufferEncoding;
+  /**
+   * trigger transform param
+   */
+  private readonly triggerTransform: TriggerTransform;
 
-  private static matches(pattern: string, topic: string) {
+  /**
+   * Mqtt subscribe method
+   */
+  private onMQTTSubscribe: SubscribeHandler;
+
+  /**
+   * subscription option handler
+   */
+  private subscribeOptionsResolver: SubscribeOptionsResolver;
+
+  /**
+   * publish option handler
+   */
+  private publishOptionsResolver: PublishOptionsResolver;
+
+  /**
+   * Mqtt client
+   */
+  private mqttConnection: Client;
+
+  /**
+   * map of subscription
+   */
+  private readonly subscriptionMap: { [subId: number]: [string, Function] };
+
+  /**
+   * Subscription reference map
+   */
+  private readonly subsRefsMap: { [trigger: string]: Array<number> };
+
+  /**
+   * current subscription data
+   */
+  private currentSubscriptionId: number;
+
+  /**
+   * type of message encode set
+   */
+  private readonly parseMessageWithEncoding: BufferEncoding;
+
+  /**
+   * Checking for match for subscription
+   *
+   * @param pattern
+   * @param topic
+   */
+  private static matches(pattern: string, topic: string): boolean {
     const patternSegments = pattern.split('/');
     const topicSegments = topic.split('/');
     const patternLength = patternSegments.length;
@@ -83,6 +162,11 @@ export class MQTTPubSub implements PubSubEngine {
     this.parseMessageWithEncoding = options.parseMessageWithEncoding;
   }
 
+  /**
+   * async PubSubEngine publish override
+   * @param triggerName
+   * @param payload
+   */
   public async publish(triggerName: string, payload: any): Promise<void> {
     await this.publishOptionsResolver(triggerName, payload).then(publishOptions => {
       const message = Buffer.from(JSON.stringify(payload), this.parseMessageWithEncoding);
@@ -91,6 +175,12 @@ export class MQTTPubSub implements PubSubEngine {
     });
   }
 
+  /**
+   * PubSubEngine subscribe override
+   * @param trigger
+   * @param onMessage
+   * @param options
+   */
   public subscribe(trigger: string, onMessage: Function, options?: Object): Promise<number> {
     const triggerName: string = this.triggerTransform(trigger, options);
     const id = this.currentSubscriptionId++;
@@ -129,7 +219,11 @@ export class MQTTPubSub implements PubSubEngine {
     }
   }
 
-  public unsubscribe(subId: number) {
+  /**
+   * PubSubEngine unsubscribe override
+   * @param subId
+   */
+  public unsubscribe(subId: number): void {
     const [triggerName = null] = this.subscriptionMap[subId] || [];
     const refs = this.subsRefsMap[triggerName];
 
@@ -153,15 +247,24 @@ export class MQTTPubSub implements PubSubEngine {
     delete this.subscriptionMap[subId];
   }
 
+  /**
+   * PubSubEngine asyncIterator override
+   * @param triggers
+   */
   public asyncIterator<T>(triggers: string | string[]): AsyncIterator<T> {
     return new PubSubAsyncIterator<T>(this, triggers);
   }
 
-  private onMessage(topic: string, message: Buffer) {
+  /**
+   * on message method
+   * @param topic
+   * @param message
+   */
+  private onMessage(topic: string, message: Buffer): void {
     const subscribers = [].concat(
         ...Object.keys(this.subsRefsMap)
         .filter((key) => MQTTPubSub.matches(key, topic))
-        .map((key) => this.subsRefsMap[key]),
+        .map((key) => this.subsRefsMap[key])
     );
 
     // Don't work for nothing..
@@ -183,9 +286,27 @@ export class MQTTPubSub implements PubSubEngine {
   }
 }
 
+/**
+ * Path type
+ */
 export type Path = Array<string | number>;
+/**
+ * Trigger type
+ */
 export type Trigger = string | Path;
+/**
+ * TriggerTransform type method
+ */
 export type TriggerTransform = (trigger: Trigger, channelOptions?: Object) => string;
+/**
+ * SubscribeOptionsResolver type method
+ */
 export type SubscribeOptionsResolver = (trigger: Trigger, channelOptions?: Object) => Promise<IClientSubscribeOptions>;
+/**
+ * PublishOptionsResolver type method
+ */
 export type PublishOptionsResolver = (trigger: Trigger, payload: any) => Promise<IClientPublishOptions>;
+/**
+ * SubscribeHandler type method
+ */
 export type SubscribeHandler = (id: number, granted: ISubscriptionGrant[]) => void;

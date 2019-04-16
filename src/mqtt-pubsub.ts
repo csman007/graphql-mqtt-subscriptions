@@ -1,6 +1,12 @@
 import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
-import { connect, Client, ISubscriptionGrant, IClientPublishOptions, IClientSubscribeOptions } from 'mqtt';
 import { PubSubAsyncIterator } from './pubsub-async-iterator';
+import {
+  connect,
+  Client,
+  ISubscriptionGrant,
+  IClientPublishOptions,
+  IClientSubscribeOptions,
+} from 'mqtt';
 
 export interface PubSubMQTTOptions {
   brokerUrl?: string;

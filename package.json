@@ -34,6 +34,7 @@
     "prepublish": "npm run test"
   },
   "dependencies": {
+    "@types/graphql": "^14.2.0",
     "graphql-subscriptions": "^1.0.0",
     "iterall": "^1.1.1",
     "mqtt": "2.18.8"

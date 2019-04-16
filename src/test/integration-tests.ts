@@ -8,8 +8,8 @@ import {
   GraphQLInt,
   GraphQLBoolean,
 } from 'graphql';
+import { subscribe } from 'graphql/subscription';
 
-import {SubscriptionManager} from 'graphql-subscriptions';
 import {connect} from 'mqtt';
 import {MQTTPubSub} from '../mqtt-pubsub';
 
@@ -202,7 +202,7 @@ describe('SubscriptionManager', function () {
         done();
       }
     };
-    subManager.subscribe({
+    subscribe({
       query,
       operationName: 'multiTrigger',
       variables: {filterBoolean: true, uga: 'UGA'},

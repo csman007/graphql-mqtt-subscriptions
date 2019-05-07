@@ -1,4 +1,4 @@
-import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
+import { PubSubEngine } from 'graphql-subscriptions';
 import { PubSubAsyncIterator } from './pubsub-async-iterator';
 import {
   connect,
@@ -250,9 +250,10 @@ export class MQTTPubSub implements PubSubEngine {
   /**
    * PubSubEngine asyncIterator override
    * @param triggers
+   * @param options
    */
-  public asyncIterator<T>(triggers: string | string[]): AsyncIterator<T> {
-    return new PubSubAsyncIterator<T>(this, triggers);
+  public asyncIterator<T>(triggers: string | string[], options?: Object): AsyncIterator<T> {
+    return new PubSubAsyncIterator<T>(this, triggers, options);
   }
 
   /**

@@ -14,107 +14,121 @@ import {connect} from 'mqtt';
 import {MQTTPubSub} from '../mqtt-pubsub';
 
 chai.use(chaiAsPromised);
+/**
+ * expect param
+ */
 const expect = chai.expect;
+/**
+ * assert param
+ */
 const assert = chai.assert;
-
+/**
+ * GraphQL Schema
+ */
 const schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: 'Query',
     fields: {
       testString: {
         type: GraphQLString,
-        resolve: function () {
+        resolve: function (): string {
           return 'works';
-        },
-      },
-    },
+        }
+      }
+    }
   }),
   subscription: new GraphQLObjectType({
     name: 'Subscription',
     fields: {
       testSubscription: {
         type: GraphQLString,
-        resolve: function (root) {
+        resolve: function (root): object {
           return root;
-        },
+        }
       },
       testFilter: {
         type: GraphQLString,
-        resolve: function (_, {filterBoolean}) {
+        resolve: function (_, {filterBoolean}): string {
           return filterBoolean ? 'goodFilter' : 'badFilter';
         },
         args: {
-          filterBoolean: {type: GraphQLBoolean},
-        },
+          filterBoolean: {type: GraphQLBoolean}
+        }
       },
       testFilterMulti: {
         type: GraphQLString,
-        resolve: function (_, {filterBoolean}) {
+        resolve: function (_, {filterBoolean}): string {
           return filterBoolean ? 'goodFilter' : 'badFilter';
         },
         args: {
           filterBoolean: {type: GraphQLBoolean},
           a: {type: GraphQLString},
-          b: {type: GraphQLInt},
-        },
+          b: {type: GraphQLInt}
+        }
       },
       testChannelOptions: {
         type: GraphQLString,
-        resolve: function (root) {
+        resolve: function (root): object {
           return root;
         },
         args: {
-          repoName: {type: GraphQLString},
-        },
-      },
-    },
-  }),
+          repoName: {type: GraphQLString}
+        }
+      }
+    }
+  })
 });
 
+/**
+ * MQTT client connection
+ */
 const mqttClient = connect('mqtt://localhost');
 
+/**
+ * subscription
+ */
 const subManager = new SubscriptionManager({
   schema,
   setupFunctions: {
     'testFilter': (_, {filterBoolean}) => {
       return {
-        'Filter1': {filter: (root) => root.filterBoolean === filterBoolean},
+        'Filter1': {filter: (root) => root.filterBoolean === filterBoolean}
       };
     },
     'testFilterMulti': () => {
       return {
         'Trigger1': {filter: () => true},
-        'Trigger2': {filter: () => true},
+        'Trigger2': {filter: () => true}
       };
-    },
+    }
   },
   pubsub: new MQTTPubSub({
-    client: mqttClient,
-  }),
+    client: mqttClient
+  })
 });
 
-describe('SubscriptionManager', function () {
-  before('wait for connection', function (done) {
+describe('SubscriptionManager', function (): void {
+  before('wait for connection', function (done): void {
     mqttClient.on('connect', () => {
       done();
     });
   });
 
-  it('throws an error if query is not valid', function () {
+  it('throws an error if query is not valid', function (): Chai.PromisedAssertion {
     const query = 'query a{ testInt }';
     const callback = () => null;
     return expect(subManager.subscribe({query, operationName: 'a', callback}))
     .to.eventually.be.rejectedWith('Subscription query has validation errors');
   });
 
-  it('rejects subscriptions with more than one root field', function () {
+  it('rejects subscriptions with more than one root field', function (): Chai.PromisedAssertion {
     const query = 'subscription X{ a: testSubscription, b: testSubscription }';
     const callback = () => null;
     return expect(subManager.subscribe({query, operationName: 'X', callback}))
     .to.eventually.be.rejectedWith('Subscription query has validation errors');
   });
 
-  it('can subscribe with a valid query and gets a subId back', function () {
+  it('can subscribe with a valid query and gets a subId back', function (): void {
     const query = 'subscription X{ testSubscription }';
     const callback = () => null;
     subManager.subscribe({query, operationName: 'X', callback}).then(subId => {
@@ -123,7 +137,7 @@ describe('SubscriptionManager', function () {
     });
   });
 
-  it.only('can subscribe with a valid query and get the root value', function (done) {
+  it.only('can subscribe with a valid query and get the root value', function (done): void {
     const query = 'subscription X{ testSubscription }';
     const callback = function (err, payload) {
       if (err) {

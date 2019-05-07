@@ -1,5 +1,5 @@
 import { $$asyncIterator } from 'iterall';
-import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
+import { PubSubEngine } from 'graphql-subscriptions';
 
 /**
  * A class for digesting PubSubEngine events via the new AsyncIterator interface.
@@ -61,8 +61,14 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
    */
   private pubsub: PubSubEngine;
 
-  constructor(pubsub: PubSubEngine, eventNames: string | string[]) {
+  /**
+   * options object
+   */
+  private options: Object;
+
+  constructor(pubsub: PubSubEngine, eventNames: string | string[], options?: Object) {
     this.pubsub = pubsub;
+    this.options = options;
     this.pullQueue = [];
     this.pushQueue = [];
     this.listening = true;
